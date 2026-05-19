@@ -1,0 +1,343 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organisation {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logoUrl     String?
+  accentColor String   @default("#3b82f6")
+  senderEmail String   @default("security@company.com")
+  senderName  String   @default("Information Security Team")
+  appTitle    String   @default("ShieldIQ")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  departments Department[]
+  modules     Module[]
+  campaigns   Campaign[]
+  templates   Template[]
+  scenarios   Scenario[]
+  activities  Activity[]
+  employees   Employee[]
+  exercises   Exercise[]
+  auditLogs   AuditLog[]
+  secureCodeCourses SecureCodeCourse[]
+  contentItems ContentItem[]
+}
+
+model User {
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  email       String
+  name        String
+  role        String
+  deptId      String?
+  department  Department?  @relation(fields: [deptId], references: [id])
+  passwordHash String
+  mfaEnabled  Boolean      @default(false)
+  mfaSecret   String?
+  failedAttempts Int        @default(0)
+  lockedUntil DateTime?
+  lastLoginAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  sessions    Session[]
+  auditLogs   AuditLog[]
+
+  @@unique([orgId, email])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+model Employee {
+  id        String       @id @default(cuid())
+  orgId     String
+  org         Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  deptId    String
+  dept      Department   @relation(fields: [deptId], references: [id])
+  name      String
+  email     String
+  role      String?
+  deletedAt DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  completions ModuleCompletion[]
+  clicks      PhishClick[]
+  challengeAttempts ChallengeAttempt[]
+  contentProgress   ContentProgress[]
+
+  @@unique([orgId, email])
+}
+
+model Department {
+  id        String       @id @default(cuid())
+  orgId     String
+  org         Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name      String
+  color     String       @default("#3b82f6")
+  employees Employee[]
+  users     User[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Module {
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name        String
+  color       String       @default("#3b82f6")
+  enabled     Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  completions ModuleCompletion[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model ModuleCompletion {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  activityId  String
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([employeeId, moduleId, activityId])
+}
+
+model Activity {
+  id           String       @id @default(cuid())
+  orgId        String
+  org          Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name         String
+  scope        String
+  deptIds      String[]
+  moduleIds    String[]
+  deadline     DateTime
+  channel      String       @default("email")
+  emailSubject String
+  emailBody    String
+  status       String       @default("draft")
+  launchedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  completions  ModuleCompletion[]
+}
+
+model Campaign {
+  id          String       @id @default(cuid())
+  orgId       String
+  org          Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name         String
+  templateId  String
+  template    Template     @relation(fields: [templateId], references: [id])
+  targetScope String
+  landingPage String       @default("awareness")
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  status      String       @default("draft")
+  clicks      PhishClick[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model PhishClick {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  action     String
+  clickedAt  DateTime @default(now())
+}
+
+model Template {
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  description String       @default("")
+  icon        String       @default("📧")
+  isSystem    Boolean      @default(false)
+  subject     String?
+  body        String?
+  campaigns   Campaign[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Scenario {
+  id            String       @id @default(cuid())
+  orgId         String
+  org           Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  title         String
+  phases        Int          @default(4)
+  injectCount   Int          @default(5)
+  durationMin   Int          @default(90)
+  difficulty    String       @default("Intermediate")
+  tags          String[]
+  color         String       @default("#3b82f6")
+  openingInject String?
+  isSystem      Boolean      @default(false)
+  exercises     Exercise[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Exercise {
+  id           String       @id @default(cuid())
+  orgId        String
+  org          Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  scenarioId   String
+  scenario     Scenario     @relation(fields: [scenarioId], references: [id])
+  title        String
+  participants String
+  difficulty   String
+  currentPhase Int          @default(0)
+  status       String       @default("active")
+  notes        Json         @default("{}")
+  scorecard    Json         @default("{}")
+  startedAt     DateTime     @default(now())
+  endedAt      DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model AuditLog {
+  id         String       @id @default(cuid())
+  orgId      String
+  org        Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User         @relation(fields: [userId], references: [id])
+  action     String
+  resource   String
+  resourceId String?
+  meta       Json         @default("{}")
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime     @default(now())
+}
+
+model SecureCodeCourse {
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  title       String
+  category    String       
+  subcategory String?      
+  description String       @default("")
+  icon        String       @default("🛡️")
+  color       String       @default("#3b82f6")
+  difficulty  String       @default("Beginner") 
+  sortOrder   Int          @default(0)
+  isSystem    Boolean      @default(false)
+  content     String       @default("") 
+  challenges  CodeChallenge[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model CodeChallenge {
+  id           String           @id @default(cuid())
+  courseId     String
+  course       SecureCodeCourse  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title        String
+  description  String            @default("")
+  type         String            @default("find_bug") 
+  language     String            @default("javascript") 
+  codeSnippet  String            @default("") 
+  correctAnswer String           @default("") 
+  options      Json              @default("[]") 
+  explanation  String            @default("") 
+  points       Int               @default(10)
+  sortOrder    Int               @default(0)
+  attempts     ChallengeAttempt[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+model ChallengeAttempt {
+  id           String        @id @default(cuid())
+  challengeId  String
+  challenge    CodeChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  employeeId   String
+  employee     Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  answer       String
+  isCorrect    Boolean
+  pointsEarned Int           @default(0)
+  attemptedAt  DateTime      @default(now())
+
+  @@unique([challengeId, employeeId])
+}
+
+model ContentItem {
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  title       String
+  type        String       
+  category    String       @default("general") 
+  description String       @default("")
+  icon        String       @default("📄")
+  color       String       @default("#3b82f6")
+  content     String       @default("") 
+  duration    Int          @default(5)  
+  difficulty  String       @default("Beginner")
+  isSystem    Boolean      @default(false)
+  sortOrder   Int          @default(0)
+  questions   QuizQuestion[]
+  progress    ContentProgress[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model QuizQuestion {
+  id            String       @id @default(cuid())
+  contentId     String
+  content       ContentItem  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  question      String
+  type          String       @default("mcq") 
+  options       Json         @default("[]") 
+  correctAnswer String       @default("")
+  explanation   String       @default("")
+  points        Int          @default(10)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+}
+
+model ContentProgress {
+  id          String      @id @default(cuid())
+  contentId   String
+  content     ContentItem @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee    @relation(fields: [employeeId], references: [id], Cascade)
+  status      String      @default("not_started") 
+  score       Int?        
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([contentId, employeeId])
+}
