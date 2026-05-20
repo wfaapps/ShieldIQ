@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #e31e24; /* Official IDfy Logo Red */
+  --accent-hover: #c11319;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a; /* Slate 900 carbon dark text */
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar optimized for light mode */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Focus ring using accent */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Custom Light-Theme high-contrast text mapping to prevent text visibility issues */
+.text-white:not(
+  button, 
+  button *, 
+  .bg-accent *, 
+  .bg-red-600 *, 
+  .text-green-400, 
+  .text-red-400, 
+  .text-yellow-400, 
+  .bg-green-500 *,
+  .bg-blue-500 *,
+  .bg-gray-500 *,
+  .bg-red-500 *
+) {
+  color: #0f172a !important;
+}
+
+/* Make subtle muted text readable in light mode */
+.text-muted {
+  color: #64748b !important;
+}
+
+.text-muted-light {
+  color: #475569 !important;
+}
+
+/* Make icons stand out against light backgrounds */
+.text-white.lucide {
+  color: #475569 !important;
+}
+
+/* Prevent hover:text-white from rendering white text on light backgrounds */
+.hover\:text-white:hover:not(
+  button,
+  button *,
+  .bg-accent *,
+  .bg-red-600 *
+) {
+  color: #0f172a !important;
+}
